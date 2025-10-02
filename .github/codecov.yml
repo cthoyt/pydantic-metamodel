@@ -1,0 +1,4 @@
+# see https://docs.codecov.com/v4.6/docs/codecov-yaml
+ignore:
+  - "src/pydantic_metamodel/__main__.py"
+  - "src/pydantic_metamodel/cli.py"
