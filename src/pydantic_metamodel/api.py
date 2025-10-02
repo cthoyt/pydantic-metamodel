@@ -106,8 +106,6 @@ def _add_annotated(t: BaseModel, graph: rdflib.Graph, node: Node) -> None:
     for name, field in t.__class__.model_fields.items():
         for annotation in field.metadata:
             if isinstance(annotation, PredicateAnnotation):
-                if not hasattr(t, name):
-                    raise KeyError(f"Class {t} doesn't have a field called {name}")
                 value = getattr(t, name)
                 annotation.add_to_graph(graph, node, value)
 

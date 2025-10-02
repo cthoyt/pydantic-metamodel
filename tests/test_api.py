@@ -107,6 +107,18 @@ class TestAPI(unittest.TestCase):
             person.get_graph(),
         )
 
+    def test_simple_predicate_namespace_failure(self) -> None:
+        """Test raising when using ``WithPredicateNamespace`` with an invalid field type."""
+
+        class PersonWithInvalidDefinition(BasePerson):
+            """Represents a person."""
+
+            orcid: str
+            wikidata: Annotated[float, WithPredicateNamespace(HAS_WIKIDATA, WIKIDATA)]
+
+        with self.assertRaises(TypeError):
+            PersonWithInvalidDefinition(orcid=CHARLIE_ORCID, wikidata=0.5).get_graph()
+
     def test_nested(self) -> None:
         """Test a nested model."""
 
