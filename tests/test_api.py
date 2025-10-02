@@ -247,7 +247,7 @@ class TestAPI(unittest.TestCase):
             person_1.get_graph(),
         )
 
-        person_2 = Model1(orcid=CHARLIE_ORCID, attribute=rdflib.URIRef(uri))
+        person_2 = Model1(orcid=CHARLIE_ORCID, attribute=URIRef(uri))
         self.assert_triples(
             {
                 (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),

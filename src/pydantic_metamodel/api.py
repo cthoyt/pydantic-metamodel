@@ -9,7 +9,7 @@ import rdflib
 from pydantic import AnyUrl, BaseModel
 from pydantic_core import core_schema
 from pydantic_core.core_schema import AfterValidatorFunctionSchema
-from rdflib import RDF, XSD, BNode, Graph, Literal, Namespace, Node
+from rdflib import RDF, XSD, BNode, Graph, Literal, Namespace, Node, URIRef
 
 __all__ = [
     "PredicateAnnotation",
@@ -26,7 +26,7 @@ Primitive: TypeAlias = str | float | int | bool
 Addable: TypeAlias = Union[Node, Primitive, "RDFInstanceBaseModel", AnyUrl, list["Addable"]]
 
 
-class PydURIRef(rdflib.URIRef):
+class PydURIRef(URIRef):
     """Wrapper type for RDFlib URIRef that works with Pydantic."""
 
     @classmethod
@@ -40,10 +40,10 @@ class PydURIRef(rdflib.URIRef):
         )
 
     @classmethod
-    def _validate(cls, v: Any) -> rdflib.URIRef:
-        if isinstance(v, rdflib.URIRef):
+    def _validate(cls, v: Any) -> URIRef:
+        if isinstance(v, URIRef):
             return v
-        return rdflib.URIRef(v)
+        return URIRef(v)
 
 
 class RDFAnnotation:
@@ -62,7 +62,7 @@ class PredicateAnnotation(RDFAnnotation, ABC):
 class WithPredicate(PredicateAnnotation):
     """Serializes a field representing a value/entity using the given predicate."""
 
-    def __init__(self, predicate: rdflib.URIRef):
+    def __init__(self, predicate: URIRef):
         """Initialize the configuration with a predicate."""
         self.predicate = predicate
 
@@ -92,7 +92,7 @@ class WithPredicate(PredicateAnnotation):
 class WithPredicateNamespace(PredicateAnnotation):
     """Serializes a field representing an entity in a given namespace with the given predicate."""
 
-    def __init__(self, predicate: rdflib.URIRef, namespace: Namespace) -> None:
+    def __init__(self, predicate: URIRef, namespace: Namespace) -> None:
         """Initialize the annotation with the predicate and namespace."""
         self.namespace = namespace
         self.predicate = predicate
@@ -160,7 +160,7 @@ class RDFInstanceBaseModel(RDFUntypedInstanceBaseModel, ABC):
 
     #: A variable denoting the RDF type that all instances of this
     #: class will get serialized with
-    rdf_type: ClassVar[rdflib.URIRef]
+    rdf_type: ClassVar[URIRef]
 
     def add_to_graph(self, graph: rdflib.Graph) -> Node:
         """Add to the graph."""
