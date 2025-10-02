@@ -6,8 +6,8 @@ from abc import ABC, abstractmethod
 from typing import ClassVar, TypeAlias, Union
 
 import rdflib
-from rdflib import RDF, BNode, Graph, Literal, Namespace, Node, URIRef
 from pydantic import AnyUrl, BaseModel
+from rdflib import RDF, BNode, Graph, Literal, Namespace, Node, URIRef
 
 __all__ = [
     "PredicateAnnotation",
