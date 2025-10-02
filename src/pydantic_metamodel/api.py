@@ -6,8 +6,8 @@ from abc import ABC, abstractmethod
 from typing import ClassVar, TypeAlias, Union
 
 import rdflib
-from pydantic import BaseModel
 from rdflib import RDF, BNode, Graph, Literal, Namespace, Node, URIRef
+from pydantic import AnyUrl, BaseModel
 
 __all__ = [
     "PredicateAnnotation",
@@ -49,6 +49,8 @@ class WithPredicate(PredicateAnnotation):
             graph.add((node, self.predicate, value.add_to_graph(graph)))
         elif isinstance(value, Node):
             graph.add((node, self.predicate, value))
+        elif isinstance(value, AnyUrl):
+            graph.add((node, self.predicate, URIRef(value.unicode_string())))
         elif isinstance(value, Primitive):
             graph.add((node, self.predicate, Literal(value)))
         elif isinstance(value, list):

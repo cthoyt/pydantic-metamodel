@@ -5,7 +5,7 @@ from collections.abc import Collection
 from typing import Annotated, ClassVar
 
 import rdflib
-from pydantic import Field
+from pydantic import AnyUrl, Field
 from rdflib import DCTERMS, FOAF, RDF, RDFS, SDO, SKOS, Literal, Namespace, Node, URIRef
 
 from pydantic_metamodel.api import (
@@ -108,6 +108,31 @@ class TestAPI(unittest.TestCase):
                 (ORCID[CHARLIE_ORCID], HAS_WIKIDATA, WIKIDATA[CHARLIE_WD]),
             },
             graph,
+        )
+
+    def test_uri(self) -> None:
+        """Test using URIs directly."""
+
+        class Model1(RDFInstanceBaseModel):
+            """Represents a person."""
+
+            rdf_type: ClassVar[URIRef] = SDO.Person
+
+            orcid: str
+            attribute: Annotated[AnyUrl, WithPredicate(RDFS.seeAlso)]
+
+            def get_node(self) -> URIRef:
+                """Get the URI for the person, based on their ORCiD."""
+                return ORCID[self.orcid]
+
+        value = "https://example.org/1"
+        person = Model1(orcid=CHARLIE_ORCID, attribute=value)
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (ORCID[CHARLIE_ORCID], RDFS.seeAlso, URIRef(value)),
+            },
+            person.get_graph(),
         )
 
     def test_nested(self) -> None:
