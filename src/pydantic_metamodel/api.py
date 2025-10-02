@@ -110,7 +110,22 @@ def _add_annotated(t: BaseModel, graph: rdflib.Graph, node: Node) -> None:
                 annotation.add_to_graph(graph, node, value)
 
 
-class RDFInstanceBaseModel(RDFBaseModel, ABC):
+class RDFUntypedInstanceBaseModel(RDFBaseModel, ABC):
+    """A base class for Pydantic models that represent instances.
+
+    - All subclasses must specify their ``rdf_type`` and a function
+      for getting the URI for the instance.
+    - All fields are opt-in for serialization to RDF and fully explicit.
+    """
+
+    def add_to_graph(self, graph: rdflib.Graph) -> Node:
+        """Add to the graph."""
+        node = self.get_node()
+        _add_annotated(self, graph, node)
+        return node
+
+
+class RDFInstanceBaseModel(RDFUntypedInstanceBaseModel, ABC):
     """A base class for Pydantic models that represent instances.
 
     - All subclasses must specify their ``rdf_type`` and a function
@@ -124,9 +139,8 @@ class RDFInstanceBaseModel(RDFBaseModel, ABC):
 
     def add_to_graph(self, graph: rdflib.Graph) -> Node:
         """Add to the graph."""
-        node = self.get_node()
+        node = super().add_to_graph(graph)
         graph.add((node, RDF.type, self.rdf_type))
-        _add_annotated(self, graph, node)
         return node
 
 

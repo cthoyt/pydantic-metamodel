@@ -12,12 +12,11 @@ from pydantic_metamodel.api import (
     IsObject,
     IsPredicate,
     IsSubject,
-    RDFBaseModel,
     RDFInstanceBaseModel,
     RDFTripleBaseModel,
+    RDFUntypedInstanceBaseModel,
     WithPredicate,
     WithPredicateNamespace,
-    _add_annotated,
 )
 
 EX = Namespace("https://example.org/")
@@ -67,7 +66,7 @@ NFDI_ROR = "05qj6w324"
 NFDI_NAME = "NFDI"
 
 
-class Entity(RDFBaseModel):
+class Entity(RDFUntypedInstanceBaseModel):
     """A simple entity."""
 
     uri: str
@@ -76,12 +75,6 @@ class Entity(RDFBaseModel):
     def get_node(self) -> Node:
         """Get the node in a simple way."""
         return URIRef(self.uri)
-
-    def add_to_graph(self, graph: rdflib.Graph) -> Node:
-        """Add to the graph."""
-        node = self.get_node()
-        _add_annotated(self, graph, node)
-        return node
 
 
 TEST_URI = URIRef("https://example.org/testuri")
