@@ -58,6 +58,7 @@ dependencies = [
 tests = [
     "pytest",
     "coverage[toml]",
+    "pydantic_extra_types[pycountry]",
 ]
 docs = [
     "sphinx>=8",
