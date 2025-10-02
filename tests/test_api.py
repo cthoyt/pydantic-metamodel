@@ -169,7 +169,7 @@ class TestAPI(unittest.TestCase):
             person,
         )
 
-    def test_triple(self) -> None:
+    def test_triple_wrapped(self) -> None:
         """Test a triple model."""
         mapping_uri = URIRef("https://example.org/testuri")
         s_uri = URIRef("https://purl.obolibrary.org/obo/CHEBI_10001")
@@ -214,6 +214,36 @@ class TestAPI(unittest.TestCase):
                 (mapping_uri, RDF.object, o_uri),
                 (mapping_uri, HAS_JUSTIFICATION, SEMAPV["ManualMappingCuration"]),
                 (mapping_uri, DCTERMS.contributor, ORCID[CHARLIE_ORCID]),
+            },
+            person,
+        )
+
+    def test_triple_direct(self) -> None:
+        """Test a triple model."""
+        mapping_uri = URIRef("https://example.org/testuri")
+        s_uri = URIRef("https://purl.obolibrary.org/obo/CHEBI_10001")
+        o_uri = URIRef("http://id.nlm.nih.gov/mesh/C067604")
+
+        class TripleDirect(RDFTripleBaseModel):
+            """Represents a mapping."""
+
+            s: Annotated[PydURIRef, IsSubject()]
+            p: Annotated[PydURIRef, IsPredicate()]
+            o: Annotated[PydURIRef, IsObject()]
+
+            def get_node(self) -> Node:
+                """Get a pre-defined node instead of a blank one, for testing purposes."""
+                return mapping_uri
+
+        person = TripleDirect(s=s_uri, p=SKOS.exactMatch, o=o_uri)
+
+        self.assert_triples(
+            {
+                (s_uri, SKOS.exactMatch, o_uri),
+                (mapping_uri, RDF.type, RDF.Statement),
+                (mapping_uri, RDF.subject, s_uri),
+                (mapping_uri, RDF.predicate, SKOS.exactMatch),
+                (mapping_uri, RDF.object, o_uri),
             },
             person,
         )
@@ -281,7 +311,7 @@ class TestAPI(unittest.TestCase):
                 (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
                 (ORCID[CHARLIE_ORCID], RDFS.seeAlso, URIRef(uri)),
             },
-            person_1.get_graph(),
+            person_1,
         )
 
         person_2 = Model1(orcid=CHARLIE_ORCID, attribute=URIRef(uri))
@@ -290,5 +320,5 @@ class TestAPI(unittest.TestCase):
                 (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
                 (ORCID[CHARLIE_ORCID], RDFS.seeAlso, URIRef(uri)),
             },
-            person_2.get_graph(),
+            person_2,
         )
