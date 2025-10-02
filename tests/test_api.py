@@ -6,6 +6,7 @@ from typing import Annotated, ClassVar
 
 import rdflib
 from pydantic import AnyUrl, Field
+from pydantic_extra_types.language_code import ISO639_3
 from rdflib import DCTERMS, FOAF, RDF, RDFS, SDO, SKOS, XSD, Literal, Namespace, Node, URIRef
 
 from pydantic_metamodel.api import (
@@ -30,6 +31,7 @@ SEMAPV = Namespace("https://w3id.org/semapv/vocab/")
 WIKIDATA = Namespace("https://www.wikidata.org/wiki/")
 HAS_WIKIDATA = EX["hasWikidata"]
 HAS_JUSTIFICATION = SSSOM["mapping_justification"]
+ISO639_3_NS = Namespace("http://lexvo.org/id/iso639-3/")
 
 
 class BasePerson(RDFInstanceBaseModel):
@@ -321,4 +323,50 @@ class TestAPI(unittest.TestCase):
                 (ORCID[CHARLIE_ORCID], RDFS.seeAlso, URIRef(uri)),
             },
             person_2,
+        )
+
+    def test_string_subclass(self) -> None:
+        """Test string subclasses."""
+
+        class MultilingualPerson(BasePerson):
+            """A person with languages."""
+
+            orcid: str
+            speaks: Annotated[
+                list[ISO639_3], WithPredicateNamespace(DCTERMS.language, ISO639_3_NS)
+            ] = Field(default_factory=list)
+
+        # test with implicitly no languages
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+            },
+            MultilingualPerson(orcid=CHARLIE_ORCID),
+        )
+
+        # test a person with explicitly no languages
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+            },
+            MultilingualPerson(orcid=CHARLIE_ORCID, speaks=[]),
+        )
+
+        # test a person with a single language
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (ORCID[CHARLIE_ORCID], DCTERMS.language, ISO639_3_NS["eng"]),
+            },
+            MultilingualPerson(orcid=CHARLIE_ORCID, speaks=["eng"]),
+        )
+
+        # test a person with multiple languages
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (ORCID[CHARLIE_ORCID], DCTERMS.language, ISO639_3_NS["eng"]),
+                (ORCID[CHARLIE_ORCID], DCTERMS.language, ISO639_3_NS["deu"]),
+            },
+            MultilingualPerson(orcid=CHARLIE_ORCID, speaks=["eng", "deu"]),
         )
