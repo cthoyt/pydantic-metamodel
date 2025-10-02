@@ -187,11 +187,16 @@ class RDFTripleBaseModel(RDFBaseModel):
             for annotation in field.metadata:
                 if isinstance(annotation, checker):
                     value = getattr(self, name)
+                    # this has its own stripped-down implementation because
+                    # it doesn't allow literals
                     if isinstance(value, RDFBaseModel):
                         return value.add_to_graph(graph)
                     elif isinstance(value, Node):
+                        # TODO this can be further refined since subject can't accept literals,
+                        #  so have validation be in the checker class itself
                         return value
                     else:
-                        raise NotImplementedError
-
+                        raise TypeError(
+                            f"{checker} must be with a RDFlib resource or pydantic-metamodel class"
+                        )
         raise KeyError
