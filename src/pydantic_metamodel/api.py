@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import typing as t
 from abc import ABC, abstractmethod
-from typing import ClassVar, TypeAlias, Union
+from typing import Any, ClassVar, TypeAlias, Union
 
 import rdflib
 from pydantic import BaseModel
-from rdflib import RDF, BNode, Graph, Literal, Namespace, Node, URIRef
+from rdflib import OWL, RDF, BNode, Graph, Literal, Namespace, Node, URIRef
 
 __all__ = [
     "PredicateAnnotation",
@@ -84,14 +85,14 @@ class RDFBaseModel(BaseModel, ABC):
         """Serialize turtle."""
         return self.get_graph().serialize(format="ttl")
 
-    def get_graph(self) -> rdflib.Graph:
+    def get_graph(self, **kwargs: Any) -> rdflib.Graph:
         """Get as RDF."""
         graph = rdflib.Graph()
-        self.add_to_graph(graph)
+        self.add_to_graph(graph, **kwargs)
         return graph
 
     @abstractmethod
-    def add_to_graph(self, graph: rdflib.Graph) -> Node:
+    def add_to_graph(self, graph: rdflib.Graph, **kwargs: Any) -> Node:
         """Add to the graph."""
 
     @abstractmethod
@@ -163,7 +164,7 @@ class IsObject(TripleAnnotation):
 class RDFTripleBaseModel(RDFBaseModel):
     """A base class for Pydantic models that represent triples and their annotations."""
 
-    def add_to_graph(self, graph: rdflib.Graph) -> Node:
+    def add_to_graph(self, graph: rdflib.Graph, *, style: t.Literal["rdf", "owl"] = "rdf") -> Node:
         """Add to the graph."""
         subject = self._get(IsSubject, graph)
         predicate = self._get(IsPredicate, graph)
@@ -171,10 +172,19 @@ class RDFTripleBaseModel(RDFBaseModel):
         graph.add((subject, predicate, obj))
 
         node = self.get_node()
-        graph.add((node, RDF.type, RDF.Statement))
-        graph.add((node, RDF.subject, subject))
-        graph.add((node, RDF.predicate, predicate))
-        graph.add((node, RDF.object, obj))
+        if style == "rdf":
+            graph.add((node, RDF.type, RDF.Statement))
+            graph.add((node, RDF.subject, subject))
+            graph.add((node, RDF.predicate, predicate))
+            graph.add((node, RDF.object, obj))
+        elif style == "owl":
+            graph.add((node, RDF.type, OWL.Axiom))
+            graph.add((node, OWL.annotatedSource, subject))
+            graph.add((node, OWL.annotatedProperty, predicate))
+            graph.add((node, OWL.annotatedTarget, obj))
+        else:
+            raise ValueError(f"invalid style: {style}")
+
         _add_annotated(self, graph, node)
         return node
 
