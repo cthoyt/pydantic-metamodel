@@ -92,7 +92,9 @@ class WithPredicateNamespace(PredicateAnnotation):
     def add_to_graph(self, graph: Graph, node: Node, value: Addable) -> None:
         """Add to the graph."""
         if not isinstance(value, str):
-            raise TypeError
+            raise TypeError(
+                f"constructing a URI for namespace {self.namespace} requires a string. Got: {value}"
+            )
         graph.add((node, self.predicate, self.namespace[value]))
 
 
