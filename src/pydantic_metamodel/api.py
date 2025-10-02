@@ -34,16 +34,10 @@ class PydURIRef(URIRef):
         cls, _source_type: Any, _handler: Any
     ) -> AfterValidatorFunctionSchema:
         return core_schema.no_info_after_validator_function(
-            cls._validate,
+            URIRef,
             core_schema.str_schema(),  # Input must be a string
             serialization=core_schema.to_string_ser_schema(),  # Serialize via str()
         )
-
-    @classmethod
-    def _validate(cls, v: Any) -> URIRef:
-        if isinstance(v, URIRef):
-            return v
-        return URIRef(v)
 
 
 class RDFAnnotation:
@@ -71,8 +65,6 @@ class WithPredicate(PredicateAnnotation):
         if isinstance(value, RDFInstanceBaseModel):
             graph.add((node, self.predicate, value.add_to_graph(graph)))
         elif isinstance(value, Node):
-            graph.add((node, self.predicate, value))
-        elif isinstance(value, PydURIRef):
             graph.add((node, self.predicate, value))
         elif isinstance(value, AnyUrl):
             graph.add((node, self.predicate, Literal(value.unicode_string(), datatype=XSD.anyURI)))
