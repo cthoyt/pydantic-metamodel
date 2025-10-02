@@ -14,6 +14,7 @@ from pydantic_metamodel.api import (
     IsSubject,
     RDFBaseModel,
     RDFInstanceBaseModel,
+    RDFResource,
     RDFTripleBaseModel,
     RDFUntypedInstanceBaseModel,
     TripleAnnotation,
@@ -168,7 +169,7 @@ class TestAPI(unittest.TestCase):
             person,
         )
 
-    def test_triple(self) -> None:
+    def test_triple_wrapped(self) -> None:
         """Test a triple model."""
         mapping_uri = URIRef("https://example.org/testuri")
         s_uri = URIRef("https://purl.obolibrary.org/obo/CHEBI_10001")
@@ -217,6 +218,36 @@ class TestAPI(unittest.TestCase):
             person,
         )
 
+    def test_triple_direct(self) -> None:
+        """Test a triple model."""
+        mapping_uri = URIRef("https://example.org/testuri")
+        s_uri = URIRef("https://purl.obolibrary.org/obo/CHEBI_10001")
+        o_uri = URIRef("http://id.nlm.nih.gov/mesh/C067604")
+
+        class TripleDirect(RDFTripleBaseModel):
+            """Represents a mapping."""
+
+            s: Annotated[RDFResource, IsSubject()]
+            p: Annotated[RDFResource, IsPredicate()]
+            o: Annotated[RDFResource, IsObject()]
+
+            def get_node(self) -> Node:
+                """Get a pre-defined node instead of a blank one, for testing purposes."""
+                return mapping_uri
+
+        person = TripleDirect(s=s_uri, p=SKOS.exactMatch, o=o_uri)
+
+        self.assert_triples(
+            {
+                (s_uri, SKOS.exactMatch, o_uri),
+                (mapping_uri, RDF.type, RDF.Statement),
+                (mapping_uri, RDF.subject, s_uri),
+                (mapping_uri, RDF.predicate, SKOS.exactMatch),
+                (mapping_uri, RDF.object, o_uri),
+            },
+            person,
+        )
+
     def test_triple_invalid(self) -> None:
         """Test a triple model with an invalid definition."""
 
@@ -256,4 +287,38 @@ class TestAPI(unittest.TestCase):
                 ),
             },
             person,
+        )
+
+    def test_uri(self) -> None:
+        """Test using URIs directly."""
+
+        class Model1(RDFInstanceBaseModel):
+            """Represents a person."""
+
+            rdf_type: ClassVar[URIRef] = SDO.Person
+
+            orcid: str
+            attribute: Annotated[RDFResource, WithPredicate(RDFS.seeAlso)]
+
+            def get_node(self) -> URIRef:
+                """Get the URI for the person, based on their ORCiD."""
+                return ORCID[self.orcid]
+
+        uri = "https://example.org/1"
+        person_1 = Model1(orcid=CHARLIE_ORCID, attribute=uri)
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (ORCID[CHARLIE_ORCID], RDFS.seeAlso, URIRef(uri)),
+            },
+            person_1,
+        )
+
+        person_2 = Model1(orcid=CHARLIE_ORCID, attribute=URIRef(uri))
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (ORCID[CHARLIE_ORCID], RDFS.seeAlso, URIRef(uri)),
+            },
+            person_2,
         )

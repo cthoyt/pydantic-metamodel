@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import ClassVar, TypeAlias, Union
+from typing import Any, ClassVar, TypeAlias, Union
 
 import rdflib
 from pydantic import AnyUrl, BaseModel
+from pydantic_core import core_schema
+from pydantic_core.core_schema import AfterValidatorFunctionSchema
 from rdflib import RDF, XSD, BNode, Graph, Literal, Namespace, Node, URIRef
 
 __all__ = [
@@ -14,6 +16,7 @@ __all__ = [
     "RDFAnnotation",
     "RDFBaseModel",
     "RDFInstanceBaseModel",
+    "RDFResource",
     "WithPredicate",
     "WithPredicateNamespace",
 ]
@@ -21,6 +24,20 @@ __all__ = [
 Primitive: TypeAlias = str | float | int | bool
 #: A type hint for things that can be handled
 Addable: TypeAlias = Union[Node, Primitive, "RDFInstanceBaseModel", AnyUrl, list["Addable"]]
+
+
+class RDFResource(URIRef):
+    """Wrapper type for RDFlib URIRef that works with Pydantic."""
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, _source_type: Any, _handler: Any
+    ) -> AfterValidatorFunctionSchema:
+        return core_schema.no_info_after_validator_function(
+            URIRef,
+            core_schema.str_schema(),  # Input must be a string
+            serialization=core_schema.to_string_ser_schema(),  # Serialize via str()
+        )
 
 
 class RDFAnnotation:
