@@ -5,13 +5,14 @@ from collections.abc import Collection
 from typing import Annotated, ClassVar
 
 import rdflib
-from pydantic import AnyUrl, Field
+from pydantic import Field
 from rdflib import DCTERMS, FOAF, RDF, RDFS, SDO, SKOS, Literal, Namespace, Node, URIRef
 
 from pydantic_metamodel.api import (
     IsObject,
     IsPredicate,
     IsSubject,
+    PydURIRef,
     RDFInstanceBaseModel,
     RDFTripleBaseModel,
     RDFUntypedInstanceBaseModel,
@@ -119,20 +120,29 @@ class TestAPI(unittest.TestCase):
             rdf_type: ClassVar[URIRef] = SDO.Person
 
             orcid: str
-            attribute: Annotated[AnyUrl, WithPredicate(RDFS.seeAlso)]
+            attribute: Annotated[PydURIRef, WithPredicate(RDFS.seeAlso)]
 
             def get_node(self) -> URIRef:
                 """Get the URI for the person, based on their ORCiD."""
                 return ORCID[self.orcid]
 
-        value = "https://example.org/1"
-        person = Model1(orcid=CHARLIE_ORCID, attribute=value)
+        uri = "https://example.org/1"
+        person_1 = Model1(orcid=CHARLIE_ORCID, attribute=uri)
         self.assert_triples(
             {
                 (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
-                (ORCID[CHARLIE_ORCID], RDFS.seeAlso, URIRef(value)),
+                (ORCID[CHARLIE_ORCID], RDFS.seeAlso, URIRef(uri)),
             },
-            person.get_graph(),
+            person_1.get_graph(),
+        )
+
+        person_2 = Model1(orcid=CHARLIE_ORCID, attribute=rdflib.URIRef(uri))
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (ORCID[CHARLIE_ORCID], RDFS.seeAlso, URIRef(uri)),
+            },
+            person_2.get_graph(),
         )
 
     def test_nested(self) -> None:
