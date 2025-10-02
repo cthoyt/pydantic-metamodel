@@ -20,7 +20,7 @@ __all__ = [
 
 Primitive: TypeAlias = str | float | int | bool
 #: A type hint for things that can be handled
-Addable: TypeAlias = Union[Node, Primitive, "RDFInstanceBaseModel", list["Addable"]]
+Addable: TypeAlias = Union[Node, Primitive, "RDFInstanceBaseModel", AnyUrl, list["Addable"]]
 
 
 class RDFAnnotation:
