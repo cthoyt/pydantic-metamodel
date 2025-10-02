@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar, TypeAlias
+from typing import ClassVar, TypeAlias, Union
 
 import rdflib
 from pydantic import BaseModel
-from rdflib import RDF, Graph, Literal, Namespace, Node, URIRef
+from rdflib import RDF, BNode, Graph, Literal, Namespace, Node, URIRef
 
 __all__ = [
     "PredicateAnnotation",
@@ -18,10 +18,9 @@ __all__ = [
     "WithPredicateNamespace",
 ]
 
-
 Primitive: TypeAlias = str | float | int | bool
 #: A type hint for things that can be handled
-Addable: TypeAlias = Node | Primitive | "RDFInstanceBaseModel" | list["Addable"]
+Addable: TypeAlias = Union[Node, Primitive, "RDFInstanceBaseModel", list["Addable"]]
 
 
 class RDFAnnotation:
@@ -32,7 +31,7 @@ class PredicateAnnotation(RDFAnnotation, ABC):
     """For serializing values."""
 
     @abstractmethod
-    def add_to_graph(self, graph: Graph, node: URIRef, value: Any) -> None:
+    def add_to_graph(self, graph: Graph, node: Node, value: Addable) -> None:
         """Add."""
         raise NotImplementedError
 
@@ -44,7 +43,7 @@ class WithPredicate(PredicateAnnotation):
         """Initialize the configuration with a predicate."""
         self.predicate = predicate
 
-    def add_to_graph(self, graph: Graph, node: URIRef, value: Addable) -> None:
+    def add_to_graph(self, graph: Graph, node: Node, value: Addable) -> None:
         """Add to the graph."""
         if isinstance(value, RDFInstanceBaseModel):
             graph.add((node, self.predicate, value.add_to_graph(graph)))
@@ -57,6 +56,8 @@ class WithPredicate(PredicateAnnotation):
                 # we're recursively calling since all the elements in
                 # the list should get the same predicate treatment
                 self.add_to_graph(graph, node, subvalue)
+        elif value is None:
+            pass
         else:
             raise NotImplementedError(f"unhandled: {value}")
 
@@ -69,8 +70,10 @@ class WithPredicateNamespace(PredicateAnnotation):
         self.namespace = namespace
         self.predicate = predicate
 
-    def add_to_graph(self, graph: Graph, node: URIRef, value: str) -> None:
+    def add_to_graph(self, graph: Graph, node: Node, value: Addable) -> None:
         """Add to the graph."""
+        if not isinstance(value, str):
+            raise TypeError
         graph.add((node, self.predicate, self.namespace[value]))
 
 
@@ -88,8 +91,23 @@ class RDFBaseModel(BaseModel, ABC):
         return graph
 
     @abstractmethod
-    def add_to_graph(self, graph: rdflib.Graph) -> URIRef:
+    def add_to_graph(self, graph: rdflib.Graph) -> Node:
         """Add to the graph."""
+
+    @abstractmethod
+    def get_node(self) -> Node:
+        """Get the URI representing the instance."""
+        raise NotImplementedError
+
+
+def _add_annotated(t: BaseModel, graph: rdflib.Graph, node: Node) -> None:
+    for name, field in t.__class__.model_fields.items():
+        for annotation in field.metadata:
+            if isinstance(annotation, PredicateAnnotation):
+                if not hasattr(t, name):
+                    raise KeyError(f"Class {t} doesn't have a field called {name}")
+                value = getattr(t, name)
+                annotation.add_to_graph(graph, node, value)
 
 
 class RDFInstanceBaseModel(RDFBaseModel, ABC):
@@ -104,18 +122,62 @@ class RDFInstanceBaseModel(RDFBaseModel, ABC):
     #: class will get serialized with
     rdf_type: ClassVar[URIRef]
 
-    @abstractmethod
-    def get_uri(self) -> URIRef:
-        """Get the URI representing the instance."""
-        raise NotImplementedError
-
-    def add_to_graph(self, graph: rdflib.Graph) -> URIRef:
+    def add_to_graph(self, graph: rdflib.Graph) -> Node:
         """Add to the graph."""
-        node = self.get_uri()
+        node = self.get_node()
         graph.add((node, RDF.type, self.rdf_type))
+        _add_annotated(self, graph, node)
+        return node
+
+
+class TripleAnnotation(RDFAnnotation):
+    """A base class for triple annotations."""
+
+
+class IsSubject(TripleAnnotation):
+    """An annotation for a field that denotes the subject."""
+
+
+class IsPredicate(TripleAnnotation):
+    """An annotation that denotes the predicate."""
+
+
+class IsObject(TripleAnnotation):
+    """An annotation for a field that denotes the object."""
+
+
+class RDFTripleBaseModel(RDFBaseModel):
+    """A base class for Pydantic models that represent triples and their annotations."""
+
+    def add_to_graph(self, graph: rdflib.Graph) -> Node:
+        """Add to the graph."""
+        subject = self._get(IsSubject, graph)
+        predicate = self._get(IsPredicate, graph)
+        obj = self._get(IsObject, graph)
+        graph.add((subject, predicate, obj))
+
+        node = self.get_node()
+        graph.add((node, RDF.type, RDF.Statement))
+        graph.add((node, RDF.subject, subject))
+        graph.add((node, RDF.predicate, predicate))
+        graph.add((node, RDF.object, obj))
+        _add_annotated(self, graph, node)
+        return node
+
+    def get_node(self) -> Node:
+        """Return a blank node, representing the reified triple."""
+        return BNode()
+
+    def _get(self, checker: type[TripleAnnotation], graph: rdflib.Graph) -> Node:
         for name, field in self.__class__.model_fields.items():
             for annotation in field.metadata:
-                if isinstance(annotation, PredicateAnnotation):
+                if isinstance(annotation, checker):
                     value = getattr(self, name)
-                    annotation.add_to_graph(graph, node, value)
-        return node
+                    if isinstance(value, RDFBaseModel):
+                        return value.add_to_graph(graph)
+                    elif isinstance(value, Node):
+                        return value
+                    else:
+                        raise NotImplementedError
+
+        raise KeyError
