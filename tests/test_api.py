@@ -12,9 +12,9 @@ from pydantic_metamodel.api import (
     IsObject,
     IsPredicate,
     IsSubject,
-    PydURIRef,
     RDFBaseModel,
     RDFInstanceBaseModel,
+    RDFResource,
     RDFTripleBaseModel,
     RDFUntypedInstanceBaseModel,
     TripleAnnotation,
@@ -227,9 +227,9 @@ class TestAPI(unittest.TestCase):
         class TripleDirect(RDFTripleBaseModel):
             """Represents a mapping."""
 
-            s: Annotated[PydURIRef, IsSubject()]
-            p: Annotated[PydURIRef, IsPredicate()]
-            o: Annotated[PydURIRef, IsObject()]
+            s: Annotated[RDFResource, IsSubject()]
+            p: Annotated[RDFResource, IsPredicate()]
+            o: Annotated[RDFResource, IsObject()]
 
             def get_node(self) -> Node:
                 """Get a pre-defined node instead of a blank one, for testing purposes."""
@@ -298,7 +298,7 @@ class TestAPI(unittest.TestCase):
             rdf_type: ClassVar[URIRef] = SDO.Person
 
             orcid: str
-            attribute: Annotated[PydURIRef, WithPredicate(RDFS.seeAlso)]
+            attribute: Annotated[RDFResource, WithPredicate(RDFS.seeAlso)]
 
             def get_node(self) -> URIRef:
                 """Get the URI for the person, based on their ORCiD."""

@@ -13,10 +13,10 @@ from rdflib import RDF, XSD, BNode, Graph, Literal, Namespace, Node, URIRef
 
 __all__ = [
     "PredicateAnnotation",
-    "PydURIRef",
     "RDFAnnotation",
     "RDFBaseModel",
     "RDFInstanceBaseModel",
+    "RDFResource",
     "WithPredicate",
     "WithPredicateNamespace",
 ]
@@ -26,7 +26,7 @@ Primitive: TypeAlias = str | float | int | bool
 Addable: TypeAlias = Union[Node, Primitive, "RDFInstanceBaseModel", AnyUrl, list["Addable"]]
 
 
-class PydURIRef(URIRef):
+class RDFResource(URIRef):
     """Wrapper type for RDFlib URIRef that works with Pydantic."""
 
     @classmethod
