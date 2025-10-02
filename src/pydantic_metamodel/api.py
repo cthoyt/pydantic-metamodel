@@ -1,11 +1,13 @@
 """A quick and dirty metamodel based on Pydantic."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypeAlias
 
 import rdflib
 from pydantic import BaseModel
-from rdflib import RDF, Graph, Literal, Namespace, URIRef
+from rdflib import RDF, Graph, Literal, Namespace, Node, URIRef
 
 __all__ = [
     "PredicateAnnotation",
@@ -15,6 +17,11 @@ __all__ = [
     "WithPredicate",
     "WithPredicateNamespace",
 ]
+
+
+Primitive: TypeAlias = str | float | int | bool
+#: A type hint for things that can be handled
+Addable: TypeAlias = Node | Primitive | "RDFInstanceBaseModel" | list["Addable"]
 
 
 class RDFAnnotation:
@@ -37,13 +44,13 @@ class WithPredicate(PredicateAnnotation):
         """Initialize the configuration with a predicate."""
         self.predicate = predicate
 
-    def add_to_graph(self, graph: Graph, node: URIRef, value: Any) -> None:
+    def add_to_graph(self, graph: Graph, node: URIRef, value: Addable) -> None:
         """Add to the graph."""
         if isinstance(value, RDFInstanceBaseModel):
-            value.add_to_graph(graph)
-        elif isinstance(value, Literal):
+            graph.add((node, self.predicate, value.add_to_graph(graph)))
+        elif isinstance(value, Node):
             graph.add((node, self.predicate, value))
-        elif isinstance(value, str | float | int | bool):
+        elif isinstance(value, Primitive):
             graph.add((node, self.predicate, Literal(value)))
         elif isinstance(value, list):
             for subvalue in value:
