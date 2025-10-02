@@ -12,9 +12,11 @@ from pydantic_metamodel.api import (
     IsObject,
     IsPredicate,
     IsSubject,
+    RDFBaseModel,
     RDFInstanceBaseModel,
     RDFTripleBaseModel,
     RDFUntypedInstanceBaseModel,
+    TripleAnnotation,
     WithPredicate,
     WithPredicateNamespace,
 )
@@ -63,12 +65,22 @@ class TestAPI(unittest.TestCase):
     """Tests for the API."""
 
     def assert_triples(
-        self, triples: Collection[tuple[Node, Node, Node]], graph: rdflib.Graph
+        self, expected_triples: Collection[tuple[Node, Node, Node]], model: RDFBaseModel
     ) -> None:
         """Check the triples are the same."""
+        graph = model.get_graph()
         self.assertEqual(
-            sorted(set(triples)),
+            sorted(set(expected_triples)),
             sorted(graph.triples((None, None, None))),
+        )
+
+        expected_graph = rdflib.Graph()
+        for expected_triple in expected_triples:
+            expected_graph.add(expected_triple)
+
+        self.assertEqual(
+            expected_graph.serialize(format="ttl"),
+            model.model_dump_turtle(),
         )
 
     def test_simple_predicate(self) -> None:
@@ -86,7 +98,7 @@ class TestAPI(unittest.TestCase):
                 (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
                 (ORCID[CHARLIE_ORCID], RDFS.label, Literal(CHARLIE_NAME)),
             },
-            person.get_graph(),
+            person,
         )
 
     def test_simple_predicate_namespace(self) -> None:
@@ -104,7 +116,7 @@ class TestAPI(unittest.TestCase):
                 (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
                 (ORCID[CHARLIE_ORCID], HAS_WIKIDATA, WIKIDATA[CHARLIE_WD]),
             },
-            person.get_graph(),
+            person,
         )
 
     def test_simple_predicate_namespace_failure(self) -> None:
@@ -153,7 +165,7 @@ class TestAPI(unittest.TestCase):
                 (ROR[NFDI_ROR], RDFS.label, Literal(NFDI_NAME)),
                 (ORCID[CHARLIE_ORCID], FOAF.member, ROR[NFDI_ROR]),
             },
-            person.get_graph(),
+            person,
         )
 
     def test_triple(self) -> None:
@@ -182,7 +194,14 @@ class TestAPI(unittest.TestCase):
             justification="ManualMappingCuration",
             author=CHARLIE_ORCID,
         )
-        graph = person.get_graph()
+
+        with self.assertRaises(KeyError):
+
+            class Nope(TripleAnnotation):
+                """A dummy triple annotation."""
+
+            person._get(Nope, rdflib.Graph())
+
         self.assert_triples(
             {
                 (s_uri, RDFS.label, Literal("Visnadin")),
@@ -195,8 +214,26 @@ class TestAPI(unittest.TestCase):
                 (mapping_uri, HAS_JUSTIFICATION, SEMAPV["ManualMappingCuration"]),
                 (mapping_uri, DCTERMS.contributor, ORCID[CHARLIE_ORCID]),
             },
-            graph,
+            person,
         )
+
+    def test_triple_invalid(self) -> None:
+        """Test a triple model with an invalid definition."""
+
+        class TripleWithBadType(RDFTripleBaseModel):
+            """Represents a mapping."""
+
+            s: Annotated[float, IsSubject()]
+            p: Annotated[Entity, IsPredicate()]
+            o: Annotated[Entity, IsObject()]
+
+        person = TripleWithBadType(
+            s=1.2,
+            p=Entity(uri=SKOS.exactMatch),
+            o=Entity(uri="http://id.nlm.nih.gov/mesh/C067604"),
+        )
+        with self.assertRaises(TypeError):
+            person.get_graph()
 
     def test_url(self) -> None:
         """Test a model that uses URL annotations."""
@@ -218,5 +255,5 @@ class TestAPI(unittest.TestCase):
                     Literal("https://cthoyt.com/", datatype=XSD.anyURI),
                 ),
             },
-            person.get_graph(),
+            person,
         )
