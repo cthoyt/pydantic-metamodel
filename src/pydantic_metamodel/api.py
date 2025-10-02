@@ -91,11 +91,15 @@ class WithPredicateNamespace(PredicateAnnotation):
 
     def add_to_graph(self, graph: Graph, node: Node, value: Addable) -> None:
         """Add to the graph."""
-        if not isinstance(value, str):
+        if isinstance(value, str):
+            graph.add((node, self.predicate, self.namespace[value]))
+        elif isinstance(value, list):
+            for subvalue in value:
+                self.add_to_graph(graph, node, subvalue)
+        else:
             raise TypeError(
                 f"constructing a URI for namespace {self.namespace} requires a string. Got: {value}"
             )
-        graph.add((node, self.predicate, self.namespace[value]))
 
 
 class RDFBaseModel(BaseModel, ABC):
