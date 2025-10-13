@@ -20,10 +20,10 @@ __all__ = [
     "RDFAnnotation",
     "RDFBaseModel",
     "RDFInstanceBaseModel",
-    "Year",
     "RDFResource",
     "WithPredicate",
     "WithPredicateNamespace",
+    "Year",
 ]
 
 
@@ -35,13 +35,13 @@ class Year(int):
         cls, _source_type: Any, _handler: Any
     ) -> AfterValidatorFunctionSchema:
         return core_schema.no_info_after_validator_function(
-            int,
+            cls,
             core_schema.int_schema(),  # Input must be a string
             serialization=core_schema.to_string_ser_schema(),  # Serialize via str()
         )
 
 
-Primitive: TypeAlias = Union[str, float, int, bool, datetime.date, datetime.datetime, Year]
+Primitive: TypeAlias = str | float | int | bool | datetime.date | datetime.datetime | Year
 
 AddableBase: TypeAlias = Union[Node, Primitive, "RDFInstanceBaseModel", AnyUrl]
 
