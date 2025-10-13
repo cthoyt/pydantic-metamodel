@@ -13,6 +13,7 @@ from pydantic_metamodel.api import (
     IsObject,
     IsPredicate,
     IsSubject,
+    POFlag,
     PredicateObjectPair,
     RDFBaseModel,
     RDFInstanceBaseModel,
@@ -396,7 +397,7 @@ class TestAPI(unittest.TestCase):
             """A person with languages."""
 
             orcid: str
-            po: PredicateObjectPair
+            po: Annotated[PredicateObjectPair, POFlag()]
 
         o = URIRef("https://example.org/resource")
 
@@ -408,5 +409,27 @@ class TestAPI(unittest.TestCase):
             },
             SomethingPerson(
                 orcid=CHARLIE_ORCID, po=PredicateObjectPair(predicate=RDFS.comment, object=o)
+            ),
+        )
+
+    def test_po_list(self) -> None:
+        """Test predicate-object."""
+
+        class SomethingPerson(BasePerson):
+            """A person with languages."""
+
+            orcid: str
+            po: Annotated[list[PredicateObjectPair], POFlag()]
+
+        o = URIRef("https://example.org/resource")
+
+        # test a person with multiple languages
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (ORCID[CHARLIE_ORCID], RDFS.comment, o),
+            },
+            SomethingPerson(
+                orcid=CHARLIE_ORCID, po=[PredicateObjectPair(predicate=RDFS.comment, object=o)]
             ),
         )
