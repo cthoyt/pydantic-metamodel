@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar, TypeAlias, Union
+from typing import Any, ClassVar, Generic, TypeAlias, Union
 
 import rdflib
 from pydantic import AnyUrl, BaseModel
 from pydantic_core import core_schema
 from pydantic_core.core_schema import AfterValidatorFunctionSchema
 from rdflib import RDF, XSD, BNode, Graph, Literal, Namespace, Node, URIRef
+from typing_extensions import TypeVar
 
 __all__ = [
     "IsPredicateObject",
@@ -25,7 +26,7 @@ __all__ = [
 
 Primitive: TypeAlias = str | float | int | bool
 
-AddableBase: TypeAlias = Union[Node, Primitive, "RDFInstanceBaseModel", AnyUrl, "PredicateObject"]
+AddableBase: TypeAlias = Union[Node, Primitive, "RDFInstanceBaseModel", AnyUrl]
 
 #: A type hint for things that can be handled
 Addable: TypeAlias = AddableBase | list["Addable"]
@@ -45,11 +46,14 @@ class RDFResource(URIRef):
         )
 
 
-class PredicateObject(BaseModel):
+T = TypeVar("T")
+
+
+class PredicateObject(BaseModel, Generic[T]):
     """A predicate-object pair."""
 
     predicate: RDFResource
-    object: RDFResource
+    object: T
 
 
 class RDFAnnotation:
@@ -64,6 +68,18 @@ class PredicateAnnotation(RDFAnnotation, ABC):
         """Add."""
         raise NotImplementedError
 
+    def _handle_object(self, graph: Graph, value: AddableBase) -> Node:
+        if isinstance(value, RDFInstanceBaseModel):
+            return value.add_to_graph(graph)
+        elif isinstance(value, Node):
+            return value
+        elif isinstance(value, AnyUrl):
+            return Literal(value.unicode_string(), datatype=XSD.anyURI)
+        elif isinstance(value, Primitive):
+            return Literal(value)
+        else:
+            raise TypeError(f"unhandled type: {value}")
+
 
 class IsPredicateObject(PredicateAnnotation):
     """A flag for objects that are predicate-object pairs."""
@@ -74,7 +90,7 @@ class IsPredicateObject(PredicateAnnotation):
             for subvalue in value:
                 self.add_to_graph(graph, node, subvalue)
         elif isinstance(value, PredicateObject):
-            graph.add((node, value.predicate, value.object))
+            graph.add((node, value.predicate, self._handle_object(graph, value.object)))
             # TODO support for other fields that would become
             #  axioms on this triple?
         else:
@@ -97,18 +113,6 @@ class WithPredicate(PredicateAnnotation):
                 self.add_to_graph(graph, node, subvalue)
         else:
             graph.add((node, self.predicate, self._handle_object(graph, value)))
-
-    def _handle_object(self, graph: Graph, value: AddableBase) -> Node:
-        if isinstance(value, RDFInstanceBaseModel):
-            return value.add_to_graph(graph)
-        elif isinstance(value, Node):
-            return value
-        elif isinstance(value, AnyUrl):
-            return Literal(value.unicode_string(), datatype=XSD.anyURI)
-        elif isinstance(value, Primitive):
-            return Literal(value)
-        else:
-            raise TypeError(f"unhandled type: {value}")
 
 
 class WithPredicateNamespace(PredicateAnnotation):
