@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 from abc import ABC, abstractmethod
 from typing import Any, ClassVar, Generic, TypeAlias, Union
 
@@ -24,7 +25,7 @@ __all__ = [
     "WithPredicateNamespace",
 ]
 
-Primitive: TypeAlias = str | float | int | bool
+Primitive: TypeAlias = str | float | int | bool | datetime.date | datetime.datetime
 
 AddableBase: TypeAlias = Union[Node, Primitive, "RDFInstanceBaseModel", AnyUrl]
 
