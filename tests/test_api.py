@@ -117,12 +117,17 @@ class TestAPI(unittest.TestCase):
             published: Annotated[datetime.datetime, WithPredicate(RDFS.label)]
 
         person = PersonWithDate(
-            orcid=CHARLIE_ORCID, published=datetime.datetime(year=2025, month=10, day=13)
+            orcid=CHARLIE_ORCID,
+            published=datetime.datetime(year=2025, month=10, day=13, hour=16, minute=22),
         )
         self.assert_triples(
             {
                 (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
-                (ORCID[CHARLIE_ORCID], RDFS.label, Literal("2025-10-13", datatype=XSD.dateTime)),
+                (
+                    ORCID[CHARLIE_ORCID],
+                    RDFS.label,
+                    Literal("2025-10-13T16:22:00", datatype=XSD.dateTime),
+                ),
             },
             person,
         )
