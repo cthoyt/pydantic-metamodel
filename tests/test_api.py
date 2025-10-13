@@ -5,7 +5,7 @@ from collections.abc import Collection
 from typing import Annotated, ClassVar
 
 import rdflib
-from pydantic import AnyUrl, Field
+from pydantic import AnyUrl, BaseModel, Field
 from pydantic_extra_types.language_code import ISO639_3
 from rdflib import DCTERMS, FOAF, RDF, RDFS, SDO, SKOS, XSD, Literal, Namespace, Node, URIRef
 
@@ -121,6 +121,23 @@ class TestAPI(unittest.TestCase):
             },
             person,
         )
+
+    def test_unhandled_type(self) -> None:
+        """Test raising when an unhandled object type is used."""
+
+        class Blah(BaseModel):
+            """A blah."""
+
+            name: str
+
+        class PersonWithInvalidType(BasePerson):
+            """Represents a person."""
+
+            orcid: str
+            blah: Annotated[Blah, WithPredicate(HAS_WIKIDATA)]
+
+        with self.assertRaises(TypeError):
+            PersonWithInvalidType(orcid=CHARLIE_ORCID, blah=Blah(name="blah")).get_graph()
 
     def test_simple_predicate_namespace_failure(self) -> None:
         """Test raising when using ``WithPredicateNamespace`` with an invalid field type."""

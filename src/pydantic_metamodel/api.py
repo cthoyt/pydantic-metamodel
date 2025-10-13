@@ -22,8 +22,11 @@ __all__ = [
 ]
 
 Primitive: TypeAlias = str | float | int | bool
+
+AddableBase: TypeAlias = Union[Node, Primitive, "RDFInstanceBaseModel", AnyUrl]
+
 #: A type hint for things that can be handled
-Addable: TypeAlias = Union[Node, Primitive, "RDFInstanceBaseModel", AnyUrl, list["Addable"]]
+Addable: TypeAlias = AddableBase | list["Addable"]
 
 
 class RDFResource(URIRef):
@@ -62,23 +65,25 @@ class WithPredicate(PredicateAnnotation):
 
     def add_to_graph(self, graph: Graph, node: Node, value: Addable) -> None:
         """Add to the graph."""
-        if isinstance(value, RDFInstanceBaseModel):
-            graph.add((node, self.predicate, value.add_to_graph(graph)))
-        elif isinstance(value, Node):
-            graph.add((node, self.predicate, value))
-        elif isinstance(value, AnyUrl):
-            graph.add((node, self.predicate, Literal(value.unicode_string(), datatype=XSD.anyURI)))
-        elif isinstance(value, Primitive):
-            graph.add((node, self.predicate, Literal(value)))
-        elif isinstance(value, list):
+        if isinstance(value, list):
             for subvalue in value:
                 # we're recursively calling since all the elements in
                 # the list should get the same predicate treatment
                 self.add_to_graph(graph, node, subvalue)
-        elif value is None:
-            pass
         else:
-            raise NotImplementedError(f"unhandled: {value}")
+            graph.add((node, self.predicate, self._handle_object(graph, value)))
+
+    def _handle_object(self, graph: Graph, value: AddableBase) -> Node:
+        if isinstance(value, RDFInstanceBaseModel):
+            return value.add_to_graph(graph)
+        elif isinstance(value, Node):
+            return value
+        elif isinstance(value, AnyUrl):
+            return Literal(value.unicode_string(), datatype=XSD.anyURI)
+        elif isinstance(value, Primitive):
+            return Literal(value)
+        else:
+            raise TypeError(f"unhandled type: {value}")
 
 
 class WithPredicateNamespace(PredicateAnnotation):
@@ -129,8 +134,8 @@ def _add_annotated(t: BaseModel, graph: rdflib.Graph, node: Node) -> None:
     for name, field in t.__class__.model_fields.items():
         for annotation in field.metadata:
             if isinstance(annotation, PredicateAnnotation):
-                value = getattr(t, name)
-                annotation.add_to_graph(graph, node, value)
+                if value := getattr(t, name):
+                    annotation.add_to_graph(graph, node, value)
 
 
 class RDFUntypedInstanceBaseModel(RDFBaseModel, ABC):
