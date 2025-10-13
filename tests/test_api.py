@@ -142,6 +142,8 @@ class TestAPI(unittest.TestCase):
             orcid: str
             published_year: Annotated[Year, WithPredicate(SDO.datePublished)]
 
+        p1 = PersonWithYear(orcid=CHARLIE_ORCID, published_year=2025)
+        self.assertEqual({"orcid": CHARLIE_ORCID, "published_year": 2025}, p1.model_dump())
         self.assert_triples(
             {
                 (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
@@ -151,10 +153,12 @@ class TestAPI(unittest.TestCase):
                     Literal(2025, datatype=XSD.gYear),
                 ),
             },
-            PersonWithYear(orcid=CHARLIE_ORCID, published_year=2025),
+            p1,
         )
 
         # test coercsion from string
+        p2 = PersonWithYear(orcid=CHARLIE_ORCID, published_year="2025")
+        self.assertEqual({"orcid": CHARLIE_ORCID, "published_year": 2025}, p2.model_dump())
         self.assert_triples(
             {
                 (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
@@ -164,7 +168,7 @@ class TestAPI(unittest.TestCase):
                     Literal(2025, datatype=XSD.gYear),
                 ),
             },
-            PersonWithYear(orcid=CHARLIE_ORCID, published_year="2025"),
+            p2,
         )
 
     def test_simple_predicate_date(self) -> None:
