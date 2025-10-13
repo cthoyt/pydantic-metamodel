@@ -419,7 +419,7 @@ class TestAPI(unittest.TestCase):
         with self.assertRaises(TypeError):
             InvalidPO(orcid=CHARLIE_ORCID, po="hello").model_dump_turtle()
 
-    def test_predicate_object_single(self) -> None:
+    def test_predicate_object_reference(self) -> None:
         """Test predicate-object."""
 
         class SomethingPerson(BasePerson):
@@ -438,6 +438,26 @@ class TestAPI(unittest.TestCase):
             },
             SomethingPerson(
                 orcid=CHARLIE_ORCID, po=PredicateObject(predicate=RDFS.comment, object=o)
+            ),
+        )
+
+    def test_predicate_object_str(self) -> None:
+        """Test predicate-object."""
+
+        class SomethingPerson(BasePerson):
+            """A person with languages."""
+
+            orcid: str
+            po: Annotated[list[PredicateObject[str]], IsPredicateObject()]
+
+        # test a person with multiple languages
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (ORCID[CHARLIE_ORCID], RDFS.comment, Literal("test")),
+            },
+            SomethingPerson(
+                orcid=CHARLIE_ORCID, po=[PredicateObject(predicate=RDFS.comment, object="test")]
             ),
         )
 
