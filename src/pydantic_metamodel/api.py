@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar, Generic, TypeAlias, Union
+from typing import Any, ClassVar, Generic, TypeAlias, Union, Hashable
 
 import rdflib
 from pydantic import AnyUrl, BaseModel
@@ -121,20 +121,39 @@ class WithPredicateNamespace(PredicateAnnotation):
 
     def __init__(self, predicate: URIRef, namespace: Namespace) -> None:
         """Initialize the annotation with the predicate and namespace."""
-        self.namespace = namespace
         self.predicate = predicate
+        self.namespace = namespace
 
     def add_to_graph(self, graph: Graph, node: Node, value: Addable) -> None:
         """Add to the graph."""
-        if isinstance(value, str):
-            graph.add((node, self.predicate, self.namespace[value]))
-        elif isinstance(value, list):
+        if isinstance(value, list):
             for subvalue in value:
                 self.add_to_graph(graph, node, subvalue)
+        elif isinstance(value, str):
+            graph.add((node, self.predicate, self.namespace[value]))
         else:
             raise TypeError(
                 f"constructing a URI for namespace {self.namespace} requires a string. Got: {value}"
             )
+
+
+class WithPredicateLookup(PredicateAnnotation):
+    """Serializes a field representing an entity in a given namespace with the given predicate."""
+
+    def __init__(self, predicate: URIRef, lookup: dict[Hashable, URIRef]) -> None:
+        """Initialize the annotation with the predicate and lookup table."""
+        self.predicate = predicate
+        self.lookup = lookup
+
+    def add_to_graph(self, graph: Graph, node: Node, value: Addable) -> None:
+        """Add to the graph."""
+        if isinstance(value, list):
+            for subvalue in value:
+                self.add_to_graph(graph, node, subvalue)
+        elif value not in self.lookup:
+            raise KeyError(f"{value} is not in the lookup table")
+        else:
+            graph.add((node, self.predicate, self.lookup[value]))
 
 
 class RDFBaseModel(BaseModel, ABC):
