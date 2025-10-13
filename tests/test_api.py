@@ -12,7 +12,9 @@ from rdflib import DCTERMS, FOAF, RDF, RDFS, SDO, SKOS, XSD, BNode, Literal, Nam
 from pydantic_metamodel.api import (
     IsObject,
     IsPredicate,
+    IsPredicateObject,
     IsSubject,
+    PredicateObject,
     RDFBaseModel,
     RDFInstanceBaseModel,
     RDFResource,
@@ -403,4 +405,80 @@ class TestAPI(unittest.TestCase):
                 (ORCID[CHARLIE_ORCID], DCTERMS.language, ISO639_3_NS["deu"]),
             },
             MultilingualPerson(orcid=CHARLIE_ORCID, speaks=["eng", "deu"]),
+        )
+
+    def test_predicate_object_raises(self) -> None:
+        """Test predicate-object."""
+
+        class InvalidPO(BasePerson):
+            """A person with languages."""
+
+            orcid: str
+            po: Annotated[str, IsPredicateObject()]
+
+        with self.assertRaises(TypeError):
+            InvalidPO(orcid=CHARLIE_ORCID, po="hello").model_dump_turtle()
+
+    def test_predicate_object_reference(self) -> None:
+        """Test predicate-object."""
+
+        class SomethingPerson(BasePerson):
+            """A person with languages."""
+
+            orcid: str
+            po: Annotated[PredicateObject[RDFResource], IsPredicateObject()]
+
+        o = "https://example.org/resource"
+
+        # test a person with multiple languages
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (ORCID[CHARLIE_ORCID], RDFS.comment, URIRef(o)),
+            },
+            SomethingPerson(
+                orcid=CHARLIE_ORCID, po=PredicateObject(predicate=RDFS.comment, object=o)
+            ),
+        )
+
+    def test_predicate_object_str(self) -> None:
+        """Test predicate-object."""
+
+        class SomethingPerson(BasePerson):
+            """A person with languages."""
+
+            orcid: str
+            po: Annotated[list[PredicateObject[str]], IsPredicateObject()]
+
+        # test a person with multiple languages
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (ORCID[CHARLIE_ORCID], RDFS.comment, Literal("test")),
+            },
+            SomethingPerson(
+                orcid=CHARLIE_ORCID, po=[PredicateObject(predicate=RDFS.comment, object="test")]
+            ),
+        )
+
+    def test_predicate_object_list(self) -> None:
+        """Test predicate-object."""
+
+        class SomethingPerson(BasePerson):
+            """A person with languages."""
+
+            orcid: str
+            po: Annotated[list[PredicateObject[RDFResource]], IsPredicateObject()]
+
+        o = "https://example.org/resource"
+
+        # test a person with multiple languages
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (ORCID[CHARLIE_ORCID], RDFS.comment, URIRef(o)),
+            },
+            SomethingPerson(
+                orcid=CHARLIE_ORCID, po=[PredicateObject(predicate=RDFS.comment, object=o)]
+            ),
         )
