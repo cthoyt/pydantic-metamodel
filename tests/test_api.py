@@ -1,5 +1,6 @@
 """Tests for the metamodel."""
 
+import datetime
 import unittest
 from collections.abc import Collection
 from typing import Annotated, ClassVar
@@ -102,6 +103,46 @@ class TestAPI(unittest.TestCase):
             {
                 (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
                 (ORCID[CHARLIE_ORCID], RDFS.label, Literal(CHARLIE_NAME)),
+            },
+            person,
+        )
+
+    def test_simple_predicate_datetime(self) -> None:
+        """Demonstrate the simple metadata model."""
+
+        class PersonWithDate(BasePerson):
+            """Represents a person."""
+
+            orcid: str
+            published: Annotated[datetime.datetime, WithPredicate(RDFS.label)]
+
+        person = PersonWithDate(
+            orcid=CHARLIE_ORCID, published=datetime.datetime(year=2025, month=10, day=13)
+        )
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (ORCID[CHARLIE_ORCID], RDFS.label, Literal("2025-10-13", datatype=XSD.dateTime)),
+            },
+            person,
+        )
+
+    def test_simple_predicate_date(self) -> None:
+        """Demonstrate the simple metadata model."""
+
+        class PersonWithDate(BasePerson):
+            """Represents a person."""
+
+            orcid: str
+            published: Annotated[datetime.date, WithPredicate(RDFS.label)]
+
+        person = PersonWithDate(
+            orcid=CHARLIE_ORCID, published=datetime.date(year=2025, month=10, day=13)
+        )
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (ORCID[CHARLIE_ORCID], RDFS.label, Literal("2025-10-13", datatype=XSD.date)),
             },
             person,
         )
