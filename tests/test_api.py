@@ -390,6 +390,18 @@ class TestAPI(unittest.TestCase):
             MultilingualPerson(orcid=CHARLIE_ORCID, speaks=["eng", "deu"]),
         )
 
+    def test_po_raises(self) -> None:
+        """Test predicate-object."""
+
+        class InvalidPO(BasePerson):
+            """A person with languages."""
+
+            orcid: str
+            po: Annotated[str, POFlag()]
+
+        with self.assertRaises(TypeError):
+            InvalidPO(orcid=CHARLIE_ORCID, po="hello").model_dump_turtle()
+
     def test_po(self) -> None:
         """Test predicate-object."""
 
