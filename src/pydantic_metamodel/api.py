@@ -12,8 +12,9 @@ from pydantic_core.core_schema import AfterValidatorFunctionSchema
 from rdflib import RDF, XSD, BNode, Graph, Literal, Namespace, Node, URIRef
 
 __all__ = [
-    "POFlag",
+    "IsPredicateObject",
     "PredicateAnnotation",
+    "PredicateObject",
     "RDFAnnotation",
     "RDFBaseModel",
     "RDFInstanceBaseModel",
@@ -24,9 +25,7 @@ __all__ = [
 
 Primitive: TypeAlias = str | float | int | bool
 
-AddableBase: TypeAlias = Union[
-    Node, Primitive, "RDFInstanceBaseModel", AnyUrl, "PredicateObjectPair"
-]
+AddableBase: TypeAlias = Union[Node, Primitive, "RDFInstanceBaseModel", AnyUrl, "PredicateObject"]
 
 #: A type hint for things that can be handled
 Addable: TypeAlias = AddableBase | list["Addable"]
@@ -46,7 +45,7 @@ class RDFResource(URIRef):
         )
 
 
-class PredicateObjectPair(BaseModel):
+class PredicateObject(BaseModel):
     """A predicate-object pair."""
 
     predicate: RDFResource
@@ -66,15 +65,15 @@ class PredicateAnnotation(RDFAnnotation, ABC):
         raise NotImplementedError
 
 
-class POFlag(PredicateAnnotation):
-    """For serializing values."""
+class IsPredicateObject(PredicateAnnotation):
+    """A flag for objects that are predicate-object pairs."""
 
     def add_to_graph(self, graph: Graph, node: Node, value: Addable) -> None:
         """Add."""
         if isinstance(value, list):
             for subvalue in value:
                 self.add_to_graph(graph, node, subvalue)
-        elif isinstance(value, PredicateObjectPair):
+        elif isinstance(value, PredicateObject):
             graph.add((node, value.predicate, value.object))
             # TODO support for other fields?
         else:

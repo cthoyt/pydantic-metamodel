@@ -12,9 +12,9 @@ from rdflib import DCTERMS, FOAF, RDF, RDFS, SDO, SKOS, XSD, BNode, Literal, Nam
 from pydantic_metamodel.api import (
     IsObject,
     IsPredicate,
+    IsPredicateObject,
     IsSubject,
-    POFlag,
-    PredicateObjectPair,
+    PredicateObject,
     RDFBaseModel,
     RDFInstanceBaseModel,
     RDFResource,
@@ -414,7 +414,7 @@ class TestAPI(unittest.TestCase):
             """A person with languages."""
 
             orcid: str
-            po: Annotated[str, POFlag()]
+            po: Annotated[str, IsPredicateObject()]
 
         with self.assertRaises(TypeError):
             InvalidPO(orcid=CHARLIE_ORCID, po="hello").model_dump_turtle()
@@ -426,7 +426,7 @@ class TestAPI(unittest.TestCase):
             """A person with languages."""
 
             orcid: str
-            po: Annotated[PredicateObjectPair, POFlag()]
+            po: Annotated[PredicateObject, IsPredicateObject()]
 
         o = URIRef("https://example.org/resource")
 
@@ -437,7 +437,7 @@ class TestAPI(unittest.TestCase):
                 (ORCID[CHARLIE_ORCID], RDFS.comment, o),
             },
             SomethingPerson(
-                orcid=CHARLIE_ORCID, po=PredicateObjectPair(predicate=RDFS.comment, object=o)
+                orcid=CHARLIE_ORCID, po=PredicateObject(predicate=RDFS.comment, object=o)
             ),
         )
 
@@ -448,7 +448,7 @@ class TestAPI(unittest.TestCase):
             """A person with languages."""
 
             orcid: str
-            po: Annotated[list[PredicateObjectPair], POFlag()]
+            po: Annotated[list[PredicateObject], IsPredicateObject()]
 
         o = URIRef("https://example.org/resource")
 
@@ -459,6 +459,6 @@ class TestAPI(unittest.TestCase):
                 (ORCID[CHARLIE_ORCID], RDFS.comment, o),
             },
             SomethingPerson(
-                orcid=CHARLIE_ORCID, po=[PredicateObjectPair(predicate=RDFS.comment, object=o)]
+                orcid=CHARLIE_ORCID, po=[PredicateObject(predicate=RDFS.comment, object=o)]
             ),
         )
