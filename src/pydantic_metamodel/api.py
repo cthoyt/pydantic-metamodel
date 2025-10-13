@@ -36,7 +36,7 @@ class Year(int):
     ) -> AfterValidatorFunctionSchema:
         return core_schema.no_info_after_validator_function(
             cls,
-            core_schema.int_schema(),  # Input must be a string
+            core_schema.int_schema(),  # Input must be an integer
             serialization=core_schema.to_string_ser_schema(),  # Serialize via str()
         )
 
