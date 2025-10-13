@@ -20,6 +20,7 @@ from pydantic_metamodel.api import (
     RDFInstanceBaseModel,
     RDFResource,
     RDFTripleBaseModel,
+Year,
     RDFUntypedInstanceBaseModel,
     TripleAnnotation,
     WithPredicate,
@@ -127,6 +128,32 @@ class TestAPI(unittest.TestCase):
                     ORCID[CHARLIE_ORCID],
                     SDO.datePublished,
                     Literal("2025-10-13T16:22:00", datatype=XSD.dateTime),
+                ),
+            },
+            person,
+        )
+
+
+    def test_simple_predicate_year(self) -> None:
+        """Demonstrate the simple metadata model."""
+
+        class PersonWithDateTime(BasePerson):
+            """Represents a person."""
+
+            orcid: str
+            published_datetime: Annotated[Year, WithPredicate(SDO.datePublished)]
+
+        person = PersonWithDateTime(
+            orcid=CHARLIE_ORCID,
+            published_datetime=2025,
+        )
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (
+                    ORCID[CHARLIE_ORCID],
+                    SDO.datePublished,
+                    Literal("2025", datatype=XSD.gYear),
                 ),
             },
             person,
