@@ -13,6 +13,7 @@ from pydantic_metamodel.api import (
     IsObject,
     IsPredicate,
     IsSubject,
+    PredicateObjectPair,
     RDFBaseModel,
     RDFInstanceBaseModel,
     RDFResource,
@@ -386,4 +387,26 @@ class TestAPI(unittest.TestCase):
                 (ORCID[CHARLIE_ORCID], DCTERMS.language, ISO639_3_NS["deu"]),
             },
             MultilingualPerson(orcid=CHARLIE_ORCID, speaks=["eng", "deu"]),
+        )
+
+    def test_po(self) -> None:
+        """Test predicate-object."""
+
+        class SomethingPerson(BasePerson):
+            """A person with languages."""
+
+            orcid: str
+            po: PredicateObjectPair
+
+        o = URIRef("https://example.org/resource")
+
+        # test a person with multiple languages
+        self.assert_triples(
+            {
+                (ORCID[CHARLIE_ORCID], RDF.type, SDO.Person),
+                (ORCID[CHARLIE_ORCID], RDFS.comment, o),
+            },
+            SomethingPerson(
+                orcid=CHARLIE_ORCID, po=PredicateObjectPair(predicate=RDFS.comment, object=o)
+            ),
         )

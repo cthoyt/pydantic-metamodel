@@ -43,6 +43,13 @@ class RDFResource(URIRef):
         )
 
 
+class PredicateObjectPair(BaseModel):
+    """A predicate-object pair."""
+
+    predicate: RDFResource
+    object: RDFResource
+
+
 class RDFAnnotation:
     """A harness that should be used as annotations inside a type hint."""
 
