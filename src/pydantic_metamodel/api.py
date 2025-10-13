@@ -70,8 +70,6 @@ class WithPredicate(PredicateAnnotation):
                 # we're recursively calling since all the elements in
                 # the list should get the same predicate treatment
                 self.add_to_graph(graph, node, subvalue)
-        elif value is None:
-            pass
         else:
             graph.add((node, self.predicate, self._handle_object(graph, value)))
 
@@ -136,8 +134,8 @@ def _add_annotated(t: BaseModel, graph: rdflib.Graph, node: Node) -> None:
     for name, field in t.__class__.model_fields.items():
         for annotation in field.metadata:
             if isinstance(annotation, PredicateAnnotation):
-                value = getattr(t, name)
-                annotation.add_to_graph(graph, node, value)
+                if value := getattr(t, name):
+                    annotation.add_to_graph(graph, node, value)
 
 
 class RDFUntypedInstanceBaseModel(RDFBaseModel, ABC):
