@@ -23,9 +23,25 @@ __all__ = [
     "RDFResource",
     "WithPredicate",
     "WithPredicateNamespace",
+    "Year",
 ]
 
-Primitive: TypeAlias = str | float | int | bool | datetime.date | datetime.datetime
+
+class Year(int):
+    """Wrapper around a year."""
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, _source_type: Any, _handler: Any
+    ) -> AfterValidatorFunctionSchema:
+        return core_schema.no_info_after_validator_function(
+            cls,
+            core_schema.int_schema(),  # Input must be an integer
+            serialization=core_schema.to_string_ser_schema(),  # Serialize via str()
+        )
+
+
+Primitive: TypeAlias = str | float | int | bool | datetime.date | datetime.datetime | Year
 
 AddableBase: TypeAlias = Union[Node, Primitive, "RDFInstanceBaseModel", AnyUrl]
 
@@ -76,6 +92,8 @@ class PredicateAnnotation(RDFAnnotation, ABC):
             return value
         elif isinstance(value, AnyUrl):
             return Literal(value.unicode_string(), datatype=XSD.anyURI)
+        elif isinstance(value, Year):
+            return Literal(str(value), datatype=XSD.gYear)
         elif isinstance(value, Primitive):
             return Literal(value)
         else:
