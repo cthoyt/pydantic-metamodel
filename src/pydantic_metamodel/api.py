@@ -70,6 +70,8 @@ class WithPredicate(PredicateAnnotation):
                 # we're recursively calling since all the elements in
                 # the list should get the same predicate treatment
                 self.add_to_graph(graph, node, subvalue)
+        elif value is None:
+            pass
         else:
             graph.add((node, self.predicate, self._handle_object(graph, value)))
 
@@ -82,12 +84,8 @@ class WithPredicate(PredicateAnnotation):
             return Literal(value.unicode_string(), datatype=XSD.anyURI)
         elif isinstance(value, Primitive):
             return Literal(value)
-        elif isinstance(value, list):
-            raise ValueError
-        elif value is None:
-            raise NotImplementedError
         else:
-            raise NotImplementedError(f"unhandled: {value}")
+            raise TypeError(f"unhandled type: {value}")
 
 
 class WithPredicateNamespace(PredicateAnnotation):
