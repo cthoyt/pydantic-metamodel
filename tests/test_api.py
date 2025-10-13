@@ -7,7 +7,7 @@ from typing import Annotated, ClassVar
 import rdflib
 from pydantic import AnyUrl, BaseModel, Field
 from pydantic_extra_types.language_code import ISO639_3
-from rdflib import DCTERMS, FOAF, RDF, RDFS, SDO, SKOS, XSD, Literal, Namespace, Node, URIRef
+from rdflib import DCTERMS, FOAF, RDF, RDFS, SDO, SKOS, XSD, BNode, Literal, Namespace, Node, URIRef
 
 from pydantic_metamodel.api import (
     IsObject,
@@ -189,6 +189,23 @@ class TestAPI(unittest.TestCase):
             },
             person,
         )
+
+    def test_triple_default_node(self) -> None:
+        """Test a triple model."""
+
+        class TestTriple(RDFTripleBaseModel):
+            """Represents a triple."""
+
+            s: Annotated[RDFResource, IsSubject()]
+            p: Annotated[RDFResource, IsPredicate()]
+            o: Annotated[RDFResource, IsObject()]
+
+        person = TestTriple(
+            s="https://purl.obolibrary.org/obo/CHEBI_10001",
+            p=SKOS.exactMatch,
+            o="http://id.nlm.nih.gov/mesh/C067604",
+        )
+        self.assertIsInstance(person.get_node(), BNode)
 
     def test_triple_wrapped(self) -> None:
         """Test a triple model."""
