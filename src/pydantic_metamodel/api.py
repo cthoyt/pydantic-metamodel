@@ -75,7 +75,8 @@ class IsPredicateObject(PredicateAnnotation):
                 self.add_to_graph(graph, node, subvalue)
         elif isinstance(value, PredicateObject):
             graph.add((node, value.predicate, value.object))
-            # TODO support for other fields?
+            # TODO support for other fields that would become
+            #  axioms on this triple?
         else:
             raise TypeError
 
