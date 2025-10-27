@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/cthoyt/cookiecutter-snekpack",
-  "commit": "04d0bdf89ce08163c9ea779e421bfbdeb32b6ef2",
+  "commit": "9e91376bfbc5bb2cd59e325ef1dc289a961e5aa4",
   "checkout": null,
   "context": {
     "cookiecutter": {
@@ -24,7 +24,7 @@
       "__runner_tests": "py",
       "__gh_slug": "cthoyt/pydantic-metamodel",
       "_template": "https://github.com/cthoyt/cookiecutter-snekpack",
-      "_commit": "04d0bdf89ce08163c9ea779e421bfbdeb32b6ef2"
+      "_commit": "9e91376bfbc5bb2cd59e325ef1dc289a961e5aa4"
     }
   },
   "directory": null
