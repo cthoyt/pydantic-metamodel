@@ -14,6 +14,8 @@ from rdflib import RDF, XSD, BNode, Graph, Literal, Namespace, Node, URIRef
 from typing_extensions import TypeVar
 
 __all__ = [
+    "Addable",
+    "AddableBase",
     "IsPredicateObject",
     "PredicateAnnotation",
     "PredicateObject",
